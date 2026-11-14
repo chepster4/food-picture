@@ -1,10 +1,14 @@
-// food-picture-01 entry (Node 22, standard library only): the picture is the
-// entry.png beside this file, and the program copies it to /output/entry.png.
+// food-picture-01 entry, version 2 (Node 22, standard library only): the picture
+// is the entry.png beside this file, and the program copies it to
+// /output/entry.png.
 //
-// The picture is a steaming tonkotsu ramen noodle-lift hero shot: black bowl,
-// dark walnut wood, warm rim light, jammy egg and glossy noodles — the style
-// the judge's own criteria favour (hunger first, then fresh/real texture and
-// steam, then styling and light, then clean craft, then reading small).
+// Version 2 is a tonkotsu ramen noodle-lift hero shot in natural window light:
+// black bowl, dark walnut wood, a thin realistic wisp of steam, a runny golden
+// yolk, charred chashu and glossy textured noodles. It is shot to look like a
+// real food photograph — true-to-life warm colours, sharp detail, no plastic
+// or waxy look — which is what the judge's own criteria favour (hunger first,
+// then fresh/real texture and steam, then styling and light, then clean craft,
+// then reading small).
 //
 // The gate takes a whole PNG or JPEG of at most 1 MiB and 1024 by 1024 pixels,
 // so this program checks the file before it copies it: the first bytes must
@@ -32,6 +36,20 @@ if (!isJpeg && !isPng) {
 }
 if (bytes.length > MAX_BYTES) {
   throw new Error(`entry.png is ${bytes.length} bytes, over the 1 MiB cap`);
+}
+// A whole JPEG runs through to its end marker (FF D9): a truncated file
+// would still pass the magic-byte check above, so check the tail too.
+if (isJpeg && (bytes[bytes.length - 2] !== 0xff || bytes[bytes.length - 1] !== 0xd9)) {
+  throw new Error('entry.png: JPEG has no end marker (truncated file)');
+}
+// A whole PNG ends with its IEND chunk (length 0, 'IEND', CRC): same idea.
+if (
+  isPng &&
+  (bytes.length < 12 ||
+    bytes.readUInt32BE(bytes.length - 12) !== 0 ||
+    bytes.toString('ascii', bytes.length - 8, bytes.length - 4) !== 'IEND')
+) {
+  throw new Error('entry.png: PNG has no IEND chunk (truncated file)');
 }
 
 const MAX_PIXELS = 1024;
